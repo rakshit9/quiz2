@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Net Value Operations</h2>
+    <form method="POST" action="{{ url_for('net_operation') }}">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.net.label }} {{ form.net(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    {% if count is not none %}
+    <div class="alert alert-info">
+        <p>Deleted {{ count }} records with Net Value "{{ net_value }}".</p>
+        <p>Remaining records in the database: {{ remaining_count }}.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

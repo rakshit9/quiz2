@@ -1,0 +1,21 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Create New Entry</h2>
+    <form method="POST">
+        {{ form.csrf_token }}
+        {{ form.time.label }} {{ form.time() }}<br>
+        {{ form.latitude.label }} {{ form.latitude() }}<br>
+        {{ form.longitude.label }} {{ form.longitude() }}<br>
+        {{ form.depth.label }} {{ form.depth() }}<br>
+        {{ form.mag.label }} {{ form.mag() }}<br>
+        {{ form.net.label }} {{ form.net() }}<br>
+        {{ form.id.label }} {{ form.id() }}<br>
+        {{ form.submit() }}
+    </form>
+    {% if message %}
+        <div class="alert alert-info">{{ message }}</div>
+    {% endif %}
+</div>
+{% endblock %}

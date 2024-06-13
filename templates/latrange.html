@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>Search Earthquakes by Latitude Range</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('lat_range_search') }}">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.latitude.label }} {{ form.latitude(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.degrees.label }} {{ form.degrees(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    {% if results %}
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}
+```

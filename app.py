@@ -2,9 +2,11 @@ import pyodbc
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
 from geopy.distance import geodesic
+from wtforms import StringField, IntegerField, FloatField, SubmitField, validators
+from wtforms.validators import DataRequired, Length, Optional, NumberRange
+
+
 import os
 
 
@@ -222,8 +224,156 @@ def largeMagnitude():
         return render_template('form5.html', error=str(e), data=0)  # and this will display it on the webpage
 
 
+class LatRangeForm(FlaskForm):
+    latitude = StringField('Enter Latitude:', validators=[DataRequired()])
+    degrees = StringField('Enter Number of Degrees:', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+@app.route('/latrange', methods=['GET', 'POST'])
+def lat_range_search():
+    form = LatRangeForm()
+    if form.validate_on_submit():
+        try:
+            latitude = float(form.latitude.data)
+            degrees = float(form.degrees.data)
+            lower_lat = latitude - degrees
+            upper_lat = latitude + degrees
+
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT time, latitude, longitude, id FROM testdata WHERE latitude BETWEEN ? AND ?", (lower_lat, upper_lat))
+            results = cursor.fetchall()
+            return render_template('latrange.html', form=form, results=results)
+        except Exception as e:
+            return render_template('latrange.html', form=form, error=str(e))
+
+    return render_template('latrange.html', form=form)
+
+class NetForm(FlaskForm):
+    net = StringField('Enter Net Value:', validators=[DataRequired()])
+    submit = SubmitField('Submit')
 
 
+@app.route('/net-operation', methods=['GET', 'POST'])
+def net_operation():
+    form = NetForm()
+    if form.validate_on_submit():
+        net_value = form.net.data
+        conn = connection()
+        cursor = conn.cursor()
+
+        # Count occurrences
+        cursor.execute("SELECT COUNT(*) FROM testdata WHERE net = ?", (net_value,))
+        count = cursor.fetchone()[0]
+
+        # Delete entries
+        cursor.execute("DELETE FROM testdata WHERE net = ?", (net_value,))
+        conn.commit()
+
+        # Count remaining entries
+        cursor.execute("SELECT COUNT(*) FROM testdata")
+        remaining_count = cursor.fetchone()[0]
+
+        return render_template('net_operation.html', form=form, count=count, remaining_count=remaining_count, net_value=net_value)
+    
+    return render_template('net_operation.html', form=form)
+
+class EntryForm(FlaskForm):
+    time = IntegerField('Time (smallint):', [validators.InputRequired(), validators.NumberRange(min=0)])
+    latitude = FloatField('Latitude:', [validators.InputRequired()])
+    longitude = FloatField('Longitude:', [validators.InputRequired()])
+    depth = FloatField('Depth:', [validators.InputRequired()])
+    mag = FloatField('Magnitude:', [validators.InputRequired()])
+    net = StringField('Net:', [validators.InputRequired(), validators.Length(max=50)])
+    id = StringField('ID:', [validators.InputRequired(), validators.Length(max=50)])
+    submit = SubmitField('Submit')
+
+
+
+@app.route('/create-entry', methods=['GET', 'POST'])
+def create_entry():
+    form = EntryForm()
+    if form.validate_on_submit():
+        try:
+            # Establish connection and cursor
+            conn = connection()
+            cursor = conn.cursor()
+
+            # Check if ID already exists
+            cursor.execute("SELECT id FROM testdata WHERE id = ?", (form.id.data,))
+            if cursor.fetchone():
+                return render_template('create_entry.html', form=form, message='Error: An entry with this ID already exists.')
+
+            # Insert new record
+            insert_query = """
+            INSERT INTO testdata (time, latitude, longitude, depth, mag, net, id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """
+            cursor.execute(insert_query, (form.time.data, form.latitude.data, form.longitude.data,
+                                          form.depth.data, form.mag.data, form.net.data, form.id.data))
+            conn.commit()
+            return render_template('create_entry.html', form=form, message='New record created successfully.')
+        except Exception as e:
+            return render_template('create_entry.html', form=form, message=f'Error: {e}')
+
+    return render_template('create_entry.html', form=form)
+
+
+
+
+class ModifyEntryForm(FlaskForm):
+    net = StringField('Net ID:', validators=[DataRequired(), validators.Length(max=50)])
+    time = IntegerField('Time (smallint):', validators=[Optional(), validators.NumberRange(min=0)])
+    latitude = FloatField('Latitude:', validators=[Optional()])
+    longitude = FloatField('Longitude:', validators=[Optional()])
+    depth = FloatField('Depth:', validators=[Optional()])
+    mag = FloatField('Magnitude:', validators=[Optional()])
+    submit = SubmitField('Update Record')
+
+
+
+@app.route('/modify-entry', methods=['GET', 'POST'])
+def modify_entry():
+    form = ModifyEntryForm()
+    if form.validate_on_submit():
+        conn = connection()
+        cursor = conn.cursor()
+
+        # Check if record exists
+        cursor.execute("SELECT * FROM testdata WHERE id = ?", (form.net.data,))
+        record = cursor.fetchone()
+        if not record:
+            return render_template('modify_entry.html', form=form, message="No record found with that Net ID.")
+
+        # Build the update statement dynamically based on the fields provided by the user
+        update_fields = []
+        params = []
+
+        if form.time.data is not None:
+            update_fields.append("time = ?")
+            params.append(form.time.data)
+        if form.latitude.data is not None:
+            update_fields.append("latitude = ?")
+            params.append(form.latitude.data)
+        if form.longitude.data is not None:
+            update_fields.append("longitude = ?")
+            params.append(form.longitude.data)
+        if form.depth.data is not None:
+            update_fields.append("depth = ?")
+            params.append(form.depth.data)
+        if form.mag.data is not None:
+            update_fields.append("mag = ?")
+            params.append(form.mag.data)
+
+        if update_fields:
+            params.append(form.net.data)
+            update_query = "UPDATE testdata SET " + ", ".join(update_fields) + " WHERE net = ?"
+            cursor.execute(update_query, tuple(params))
+            conn.commit()
+
+            return render_template('modify_entry.html', form=form, message="Record updated successfully.")
+
+    return render_template('modify_entry.html', form=form)
 
 if __name__ == '__main__':
     app.run(debug=True)
