@@ -367,7 +367,7 @@ def modify_entry():
 
         if update_fields:
             params.append(form.net.data)
-            update_query = "UPDATE testdata SET " + ", ".join(update_fields) + " WHERE net = ?"
+            update_query = "UPDATE testdata SET " + ", ".join(update_fields) + " WHERE id = ?"
             cursor.execute(update_query, tuple(params))
             conn.commit()
 
