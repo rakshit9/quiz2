@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Q-4 - Rakshit{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    {% if error %}
+        <div class="alert alert-danger text-center" role="alert">
+            {{ error }}
+        </div>
+    {% endif %}
+    <div class="form-group">
+        <form action="/form4" method="POST" class="form-inline justify-content-center">
+            <label for="clus" class="mr-2">Select Category (Cluster): </label>
+            <select name="clus" id="clus" class="select-custom mr-2">
+                <option value="earthquake">Earthquake</option>
+                <option value="ice quake">Ice Quake</option>
+                <option value="explosion">Explosion</option>
+                <option value="quarry blast">Quarry Blast</option>
+                <option value="other event">Other Event</option>
+            </select>
+            <input type="submit" value="Submit"/>
+        </form>
+    </div>
+    {% if data == 1 %}
+        <p class="lead">Earthquake records of type: {{ clus }}</p>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-fixed">
+                <caption>Earthquake Records</caption>
+                <thead class="thead-light">
+                    <tr>
+                        <!-- Table headers as before -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result %}
+                    <tr>
+                        <!-- Table rows as before -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
